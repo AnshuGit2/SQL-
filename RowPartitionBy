@@ -1,0 +1,36 @@
+
+select FORMAT(D.D_DATE, 'MM/yyyy') AS Month_Year, D.PROPNUM, P.WELL_NAME, P.UWI, P.RSV_CAT, P.OPERATOR_CODE, 
+	     D.GAS
+	FROM [store].[ARIES_AC_Daily]D JOIN [store].[ARIES_AC_Property] P
+			ON  D.[PROPNUM] = P.[PROPNUM] 
+			where D_DATE >= DATEADD(DAY,-14, GETDATE())
+	AND RSV_CAT NOT IN ('1PDP', '1PA', '1SLD')
+Group By D.propnum, P.UWI, P.WELL_NAME, P.RSV_CAT, P.OPERATOR_CODE, FORMAT(D.D_DATE, 'MM/yyyy'), D.GAS
+
+UNION
+
+select  b.Month_Year, b.PROPNUM, b.WELL_NAME, b.UWI, b.RSV_CAT, b.OPERATOR_CODE, b.GAS from
+(select FORMAT(M.P_DATE, 'MM/yyyy') AS Month_Year, M.PROPNUM, P.WELL_NAME, P.UWI, P.RSV_CAT, P.OPERATOR_CODE,
+	    M.GAS,
+	    ROW_NUMBER() OVER(PARTITION BY M.PROPNUM ORDER BY M.P_DATE desc) as Trow2 
+		FROM [store].[ARIES_AC_Product]M join [store].[ARIES_AC_Property] P
+      ON  M.[PROPNUM] = P.[PROPNUM]
+	  where P_DATE >=DATEADD(MONTH,-3, GETDATE()) and OPERATOR_CODE in ('O') 
+	  and RSV_CAT NOT IN ('1PDP', '1PA', '1SLD')  ) b where b.Trow2=1
+
+UNION
+
+select a.Month_Year, a.PROPNUM, a.WELL_NAME, a.UWI, a.RSV_CAT, a.OPERATOR_CODE, a.GAS
+from (
+select FORMAT(M.P_DATE, 'MM/yyyy') AS Month_Year,  M.PROPNUM, P.WELL_NAME, P.UWI, P.RSV_CAT, P.OPERATOR_CODE, 
+	     M.GAS, 
+		ROW_NUMBER() OVER(PARTITION BY M.PROPNUM ORDER BY M.P_DATE desc) as Trow2
+	
+	FROM [store].[ARIES_AC_Product]M JOIN [store].[ARIES_AC_Property] P
+			ON  M.[PROPNUM] = P.[PROPNUM] 
+			
+			where P_DATE >= DATEADD(YEAR,-1, GETDATE())
+			and OPERATOR_CODE in ('N') 
+	        AND RSV_CAT NOT IN ('1PDP', '1PA', '1SLD') 
+			AND M.GAS > 0 ) a where a.Trow2=1
+		
