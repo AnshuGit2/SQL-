@@ -1,0 +1,139 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Aug  1 10:28:12 2022
+
+@author: lar0ab2
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jul 31 22:18:29 2022
+
+@author: lar0ab2
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Returning all Propnum and df.head
+"""
+
+import os
+import pandas as pd
+import pyodbc
+import cx_Oracle
+import pyodbc
+import numpy as np
+
+print("hello 1")
+directory = os.getcwd()
+
+print(directory)
+
+azure_air_db_dev = 'RegulatoryReportingDEV'
+azure_server = 'cnxsqlpbi19.database.windows.net'
+azure_report_db = 'CNXPBI'
+
+conn = pyodbc.connect('Driver={SQL Server};'
+                          'Server=' + azure_server + ';'
+                           'Database=' + azure_air_db_dev + ';'
+                              'UID=API_SVC;'
+                              'PWD=4Cbatyv1')
+
+def get_table():
+
+    c = conn.cursor()
+
+    c.execute('Select [PROPNUM]'
+          ',[GAS],[P_DATE]'
+          'from [store].[ARIES_AC_Product]')
+          
+    return c.description, c.fetchall()
+#c= get_table()
+#print (c)
+
+#df = pd.read_sql_query("Select [PROPNUM], [GAS] from [store].[ARIES_AC_Product] where [GAS] > 1500 ' " , conn)
+
+#df = pd.read_sql_query("Select [PROPNUM], [GAS] from [store].[ARIES_AC_Product] where [Gas] > 1700 and [PROPNUM] = 'D86HBDCD16'" , conn)
+df = pd.read_sql_query("""select FORMAT(D.D_DATE, 'MM/yyyy') AS Month_Year, D.PROPNUM, P.WELL_NAME, P.UWI, P.RSV_CAT, P.OPERATOR_CODE, 
+	     D.GAS
+	FROM [store].[ARIES_AC_Daily]D JOIN [store].[ARIES_AC_Property] P
+			ON  D.[PROPNUM] = P.[PROPNUM] 
+			where D_DATE >= DATEADD(DAY,-14, GETDATE())
+	AND RSV_CAT NOT IN ('1PDP', '1PA', '1SLD')
+Group By D.propnum, P.UWI, P.WELL_NAME, P.RSV_CAT, P.OPERATOR_CODE, FORMAT(D.D_DATE, 'MM/yyyy'), D.GAS
+
+UNION
+
+select  b.Month_Year, b.PROPNUM, b.WELL_NAME, b.UWI, b.RSV_CAT, b.OPERATOR_CODE, b.GAS from
+(select FORMAT(M.P_DATE, 'MM/yyyy') AS Month_Year, M.PROPNUM, P.WELL_NAME, P.UWI, P.RSV_CAT, P.OPERATOR_CODE,
+	    M.GAS,
+	    ROW_NUMBER() OVER(PARTITION BY M.PROPNUM ORDER BY M.P_DATE desc) as Trow2 
+		FROM [store].[ARIES_AC_Product]M join [store].[ARIES_AC_Property] P
+      ON  M.[PROPNUM] = P.[PROPNUM]
+	  where P_DATE >=DATEADD(MONTH,-3, GETDATE()) and OPERATOR_CODE in ('O') 
+	  and RSV_CAT NOT IN ('1PDP', '1PA', '1SLD')  ) b where b.Trow2=1
+
+UNION
+
+select a.Month_Year, a.PROPNUM, a.WELL_NAME, a.UWI, a.RSV_CAT, a.OPERATOR_CODE, a.GAS
+from (
+select FORMAT(M.P_DATE, 'MM/yyyy') AS Month_Year,  M.PROPNUM, P.WELL_NAME, P.UWI, P.RSV_CAT, P.OPERATOR_CODE, 
+	     M.GAS, 
+		ROW_NUMBER() OVER(PARTITION BY M.PROPNUM ORDER BY M.P_DATE desc) as Trow2
+	
+	FROM [store].[ARIES_AC_Product]M JOIN [store].[ARIES_AC_Property] P
+			ON  M.[PROPNUM] = P.[PROPNUM] 
+			
+			where P_DATE >= DATEADD(YEAR,-1, GETDATE())
+			and OPERATOR_CODE in ('N') 
+	        AND RSV_CAT NOT IN ('1PDP', '1PA', '1SLD') 
+			AND M.GAS > 0 ) a where a.Trow2=1
+ """, conn)
+print (df)
+print(df.head())
+print("hello 2")
+
+conn.close()
+#reorder columns in dataframe
+df = df[["PROPNUM", "UWI", "WELL_NAME", "OPERATOR_CODE", "GAS", "Month_Year"]]
+#change column names
+df.rename(columns = {'Month_Year' : 'GAS_DATE', 'GAS' : 'GAS_TOTAL'}, inplace = True)
+df['LOAD'] = "N"
+#df['MODIFIED_DATE'] = pd.Timestamp(2017, 1, 1, 12 )
+df['MODIFIED_DATE'] = np.nan
+
+
+print(df.head())
+
+conn = cx_Oracle.connect('aries/ari35@cnxoradbprd:1538/ariesprd.cnsl.com')
+c = conn.cursor()
+c.execute('select count(*) from AC_RSVCAT_STAGING')
+
+
+## First method to enter data in database
+
+#rows = [tuple(x) for x in df.values]
+#c.executemany("INSERT INTO AC_RSVCAT_STAGING VALUES (:1, :2, :3, :4, :5, :6, :7, :8)", rows)
+
+
+## second method to enter data in database
+
+#sql1 = 'INSERT INTO AC_RSVCAT_STAGING VALUES(:1, :2, :3, :4, :5, :6, :7, :8)'
+#df_list = df.values.tolist()
+#n = 0
+#for i in df.iterrows():
+#    c.execute(sql1, df_list[n])
+#    n = n+1
+    
+## Third method to enter data in td dataframe
+for index, row in df.iterrows():
+    c.execute("INSERT INTO AC_RSVCAT_STAGING (PROPNUM, UWI, WELL_NAME, OPERATOR_CODE, GAS_TOTAL, GAS_DATE, LOAD, MODIFIED_DATE) values(?, ?, ?, ?, ?, ?, ?, ?)", (row.PROPNUM, row.UWI, row.WELL_NAME, row.OPERATOR_CODE, row.GAS_TOTAL, row.GAS_DATE, row.LOAD, row.MODIFIED_DATE))
+c.commit()
+
+c.execute('select count(*) from AC_RSVCAT_STAGING')
+c.close()
+
+## Forth Method 
+# for row in df.itertuples():
+#      c.execute('INSERT INTO AC_RSVCAT_STAGING value(:PROPNUM,:UWI,:WELL_NAME,:OPERATOR_CODE,:GAS_TOTAL,:GAS_DATE,:LOAD,:MODIFIED_DATE)',(row.PROPNUM, row.UWI, row.WELL_NAME, row.OPERATOR_CODE, row.GAS_TOTAL, row.GAS_DATE, row.LOAD, row.MODIFIED_DATE))
+# c.commit()
