@@ -1,0 +1,4 @@
+SELECT A.Chile AS "Child_ID",A.Child_name AS "Child",
+B.Parent_id AS "Parent_ID",B.Parent_name AS "Parent"
+FROM Family A, Family B
+WHERE A.Child_up = B.Parent_id
