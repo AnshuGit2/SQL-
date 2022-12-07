@@ -9,7 +9,7 @@ Created on Tue Aug  9 23:05:09 2022
 """
 Created on Tue Aug  9 13:50:12 2022
 
-@author: lar0ab2
+@author: ****
 """
 
 # -*- coding: utf-8 -*-
@@ -40,8 +40,8 @@ directory = os.getcwd()
 
 print(directory)
 
-azure_air_db_dev = 'RegulatoryReportingDEV'
-azure_server = 'cnxsqlpbi19.database.windows.net'
+azure_air_db_dev = 'ReportDEV'
+azure_server = 'ABCD.database.windows.net'
 azure_report_db = 'CNXPBI'
 
 conn = pyodbc.connect('Driver={SQL Server};'
