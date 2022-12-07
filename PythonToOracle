@@ -14,7 +14,7 @@ Created on Sun Jul 31 22:18:29 2022
 
 # -*- coding: utf-8 -*-
 """
-Returning all Propnum and df.head
+Returning all ids
 """
 
 import os
@@ -29,15 +29,15 @@ directory = os.getcwd()
 
 print(directory)
 
-azure_air_db_dev = 'RegulatoryReportingDEV'
-azure_server = 'cnxsqlpbi19.database.windows.net'
+azure_air_db_dev = 'ReportDEV'
+azure_server = 'ABCDEF.database.windows.net'
 azure_report_db = 'CNXPBI'
 
 conn = pyodbc.connect('Driver={SQL Server};'
                           'Server=' + azure_server + ';'
-                           'Database=' + azure_air_db_dev + ';'
-                              'UID=API_SVC;'
-                              'PWD=4Cbatyv1')
+                           'Database=' + azure_dev + ';'
+                              'UID=ABCDC;'
+                              'PWD=****')
 
 def get_table():
 
@@ -91,7 +91,7 @@ select FORMAT(M.P_DATE, 'MM/yyyy') AS Month_Year,  M.PROPNUM, P.WELL_NAME, P.UWI
  """, conn)
 print (df)
 print(df.head())
-print("hello 2")
+
 
 conn.close()
 #reorder columns in dataframe
