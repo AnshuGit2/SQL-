@@ -1,34 +1,34 @@
---1 # What percentage of total orders were shipped on the same date?
+--1
 Select ship_date, (count(ship_date)*100/ (Select Count(*) 
 from superstore)) as percentageoftotalorder
 from superstore
 group by ship_date
 
---2. Name top 3 customers with highest total value of orders.
+--2.
 SELECT customer_name, customer_id, sum(sales) as highestvalueorders
 FROM public.superstore_final_dataset
 GROUP BY customer_id,customer_name
 limit 3;
 
---3.# Find the top 5 items with the highest average sales per day.
+--3.
 select max(sales)as maxavgsale, order_date
 from public.superstore_final_dataset
 group by  sales, order_date 
 limit 5
 
---4.find the average order value for each customer, and rank the customers by their average order value.
+--4.
 select customer_id, avg(sales), Dense_rank() over (order by customer_id Desc) as RankOr
 from public.superstore_final_dataset
 group by customer_id
 order by RankOr
 
---5.Give the name of customers who ordered highest and lowest orders from each city.
+--5.
 select customer_id, customer_name, city, sum(sales) as HighSale
 from public.superstore_final_dataset
 group by customer_id, customer_name, city 
 order by HighSale desc 
 
---6. What is the most demanded sub-category in the west region?
+--6. 
 select region, max(sub_category)as MaxSubcategory
 from public.superstore_final_dataset
 where region = 'West' 
@@ -36,28 +36,12 @@ group by region, sub_category
 limit 1
 
 
---7. Which order has the highest number of items? And which order has the highest cumulative value?
-
-
-
---8. Which order has the highest number of items? And which order has the highest cumulative value?
 
 SELECT row_id, order_id, order_date, ship_date, ship_mode, customer_id, customer_name, segment, country, 
 
 city, state, postal_code, region, product_id, category, sub_category, product_name, sales
 
 FROM public.superstore_final_dataset;
-
---9.`Which order has the highest number of items? And which order has the highest cumulative value?
-
---10 Which order has the highest number of items? And which order has the highest cumulative value?
-
---11. What is the average time for orders to get shipped after order is placed?
-
---12. Find all the customers who individually ordered on 3 consecutive days where each day’s total order was more than 50 in value. **
-
---13. Find the maximum number of days for which total sales on each day kept rising.**
-
 
 
 
